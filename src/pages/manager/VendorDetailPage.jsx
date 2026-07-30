@@ -7,8 +7,9 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../context/ToastContext';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { 
-  Building2, Mail, Phone, MapPin, FileCheck, Star, ArrowLeft, ShieldCheck, Download, Award, Package, ShoppingCart, Plus 
+  Building2, Mail, Phone, MapPin, FileCheck, Star, ArrowLeft, ShieldCheck, Download, Award, Package, ShoppingCart, Plus, CheckCircle, XCircle, Clock 
 } from 'lucide-react';
 
 export const VendorDetailPage = () => {
@@ -18,6 +19,7 @@ export const VendorDetailPage = () => {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const { showToast } = useToast();
 
   // Quick Order Modal State
@@ -53,6 +55,27 @@ export const VendorDetailPage = () => {
 
     loadVendorDetails();
   }, [id]);
+
+  const handleApprove = async () => {
+    try {
+      const updated = await vendorApi.approveVendor(vendor.id);
+      setVendor(updated);
+      showToast('Vendor registration approved successfully! Portal access granted.', 'success');
+    } catch (err) {
+      showToast('Approval action failed', 'error');
+    }
+  };
+
+  const handleRejectConfirm = async (reason) => {
+    try {
+      const updated = await vendorApi.rejectVendor(vendor.id, reason);
+      setVendor(updated);
+      setRejectDialogOpen(false);
+      showToast('Vendor registration request rejected.', 'warning');
+    } catch (err) {
+      showToast('Rejection action failed', 'error');
+    }
+  };
 
   const handleOpenOrderModal = (product) => {
     setOrderForm({
@@ -117,6 +140,41 @@ export const VendorDetailPage = () => {
         <ArrowLeft className="w-4 h-4" />
         <span>Back to Vendors Directory</span>
       </button>
+
+      {/* Pending Registration Verification Alert */}
+      {vendor.status === 'Pending' && (
+        <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-amber-100 text-amber-700 font-bold shrink-0">
+              <Clock className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <p className="font-extrabold text-sm text-slate-900">
+                Registration Verification Pending
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Review the submitted business, tax, and contact details below before approving or rejecting portal access.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setRejectDialogOpen(true)}
+              className="px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors"
+            >
+              <XCircle className="w-4 h-4" />
+              <span>Reject Request</span>
+            </button>
+            <button
+              onClick={handleApprove}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-md shadow-emerald-200"
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span>Approve & Grant Access</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Vendor Profile Header Banner */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -326,6 +384,18 @@ export const VendorDetailPage = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Rejection Reason Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={rejectDialogOpen}
+        onClose={() => setRejectDialogOpen(false)}
+        onConfirm={handleRejectConfirm}
+        title="Reject Vendor Registration"
+        message={`Are you sure you want to reject registration for ${vendor.name}? Provide a reason for rejection below.`}
+        confirmText="Reject Registration"
+        requireReason={true}
+        reasonPlaceholder="e.g. Invalid GSTIN registration certificate or mismatched address."
+      />
     </div>
   );
 };

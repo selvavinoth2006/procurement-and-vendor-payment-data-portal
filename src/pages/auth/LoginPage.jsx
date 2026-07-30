@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import {
   Lock, Mail, ArrowRight,
-  Building2, KeyRound, ArrowLeft, Zap
+  Building2, KeyRound, ArrowLeft, Zap, UserPlus, Clock, AlertTriangle
 } from 'lucide-react';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState(null);
   const { login } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setStatusMessage(null);
+
     if (!email || !password) {
       showToast('Please enter both email and password', 'warning');
       return;
@@ -25,14 +28,18 @@ export const LoginPage = () => {
     setLoading(true);
     try {
       const loggedUser = await login(email, password);
-      showToast(`Welcome back, ${loggedUser.name}!`, 'success');
-      if (loggedUser.role === 'manager') {
+      showToast(`Welcome back, ${loggedUser?.name || 'User'}!`, 'success');
+      if (loggedUser?.role === 'manager') {
         navigate('/manager/dashboard');
       } else {
         navigate('/vendor/dashboard');
       }
     } catch (err) {
-      showToast(err.message || 'Authentication failed', 'error');
+      const msg = err.message || 'Authentication failed';
+      if (msg.includes('pending manager approval') || msg.includes('rejected by the manager') || msg.includes('deactivated')) {
+        setStatusMessage(msg);
+      }
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -58,7 +65,7 @@ export const LoginPage = () => {
       </div>
 
       {/* Back to Home */}
-      <div className="relative z-10 p-5">
+      <div className="relative z-10 p-5 flex justify-between items-center max-w-7xl mx-auto w-full">
         <button
           id="back-to-home-btn"
           onClick={() => navigate('/')}
@@ -67,6 +74,14 @@ export const LoginPage = () => {
           <ArrowLeft className="w-4 h-4" />
           Back to Home
         </button>
+
+        <Link
+          to="/register"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-bold text-xs transition-all"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          <span>Vendor Registration</span>
+        </Link>
       </div>
 
       {/* Main centered content */}
@@ -86,6 +101,21 @@ export const LoginPage = () => {
               Enterprise Procurement &amp; Vendor Portal
             </div>
           </div>
+
+          {/* Status Message Banner if login fails due to vendor approval state */}
+          {statusMessage && (
+            <div className="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex gap-3 items-start animate-fade-in shadow-sm">
+              {statusMessage.includes('pending') ? (
+                <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              )}
+              <div>
+                <p className="font-bold text-slate-900">Registration Notice</p>
+                <p className="mt-0.5 text-slate-700 leading-relaxed">{statusMessage}</p>
+              </div>
+            </div>
+          )}
 
           {/* Card */}
           <div className="bg-white/90 backdrop-blur-xl p-7 sm:p-8 rounded-3xl border border-slate-200 shadow-2xl shadow-slate-200/60">
@@ -171,6 +201,17 @@ export const LoginPage = () => {
               </button>
             </form>
 
+            {/* Vendor Signup Link */}
+            <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+              <p className="text-xs text-slate-500 mb-2">Are you a new vendor looking to join ProcureHub?</p>
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Register for a Vendor Account</span>
+              </Link>
+            </div>
 
           </div>
 
@@ -182,3 +223,4 @@ export const LoginPage = () => {
     </div>
   );
 };
+

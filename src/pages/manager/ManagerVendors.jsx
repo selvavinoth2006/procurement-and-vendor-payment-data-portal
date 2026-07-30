@@ -7,7 +7,7 @@ import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
 import { 
-  Users, UserPlus, Star, CheckCircle, XCircle, Eye, Edit, Power, Building2, Phone, Mail 
+  Users, UserPlus, Star, CheckCircle, XCircle, Eye, Edit, Power, Building2, Phone, Mail, Clock, AlertCircle 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,6 +23,7 @@ export const ManagerVendors = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [rejectDialog, setRejectDialog] = useState({ open: false, vendorId: null });
+  const [verifyVendorModal, setVerifyVendorModal] = useState({ open: false, vendor: null });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -58,7 +59,7 @@ export const ManagerVendors = () => {
   const handleApprove = async (id) => {
     try {
       await vendorApi.approveVendor(id);
-      showToast('Vendor registration approved successfully', 'success');
+      showToast('Vendor registration approved successfully! The vendor can now access the portal.', 'success');
       fetchVendors();
     } catch (err) {
       showToast('Action failed', 'error');
@@ -68,7 +69,7 @@ export const ManagerVendors = () => {
   const handleRejectConfirm = async (reason) => {
     try {
       await vendorApi.rejectVendor(rejectDialog.vendorId, reason);
-      showToast('Vendor request rejected', 'warning');
+      showToast('Vendor registration request rejected.', 'warning');
       setRejectDialog({ open: false, vendorId: null });
       fetchVendors();
     } catch (err) {
@@ -142,6 +143,8 @@ export const ManagerVendors = () => {
     });
   };
 
+  const pendingVendors = vendors.filter(v => v.status === 'Pending');
+
   const filteredVendors = vendors.filter(v => {
     const matchesSearch = v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           v.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -173,6 +176,35 @@ export const ManagerVendors = () => {
           <span>Add Vendor Manually</span>
         </button>
       </div>
+
+      {/* Pending Approvals Notification Alert */}
+      {pendingVendors.length > 0 && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/90 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-700 font-bold shrink-0">
+              <Clock className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <p className="font-bold text-xs sm:text-sm text-slate-900">
+                {pendingVendors.length} Vendor Registration {pendingVendors.length === 1 ? 'Request' : 'Requests'} Pending Approval
+              </p>
+              <p className="text-xs text-amber-800/80">
+                Review registration details below and approve requests to grant portal access.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setStatusFilter(statusFilter === 'Pending' ? '' : 'Pending')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all shrink-0 ${
+              statusFilter === 'Pending' 
+                ? 'bg-amber-200 text-amber-950 border border-amber-300' 
+                : 'bg-white text-amber-800 border border-amber-200 hover:bg-amber-100'
+            }`}
+          >
+            {statusFilter === 'Pending' ? 'Show All Vendors' : 'Filter Pending Requests'}
+          </button>
+        </div>
+      )}
 
       {/* Search & Filter */}
       <SearchFilterBar
@@ -229,6 +261,14 @@ export const ManagerVendors = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         {v.status === 'Pending' ? (
                           <>
+                            <button
+                              onClick={() => setVerifyVendorModal({ open: true, vendor: v })}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg text-xs flex items-center gap-1 transition-colors border border-slate-200"
+                              title="Verify Submitted Registration Details"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-primary-600" />
+                              <span>Verify Details</span>
+                            </button>
                             <button
                               onClick={() => handleApprove(v.id)}
                               className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-lg text-xs flex items-center gap-1 transition-colors"
@@ -439,6 +479,126 @@ export const ManagerVendors = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Registration Details Verification Modal */}
+      <Modal
+        isOpen={verifyVendorModal.open}
+        onClose={() => setVerifyVendorModal({ open: false, vendor: null })}
+        title="Verify Vendor Registration Details"
+      >
+        {verifyVendorModal.vendor && (
+          <div className="space-y-5 text-xs">
+            {/* Header Summary */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">{verifyVendorModal.vendor.name}</h3>
+                  <p className="text-[11px] text-slate-400 font-mono">Code: {verifyVendorModal.vendor.code}</p>
+                </div>
+              </div>
+              <StatusBadge status={verifyVendorModal.vendor.status} />
+            </div>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+                <span className="text-slate-400 block font-semibold text-[10px] uppercase">Company / Organization</span>
+                <span className="font-bold text-slate-900 text-xs">{verifyVendorModal.vendor.name}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+                <span className="text-slate-400 block font-semibold text-[10px] uppercase">Supply Category</span>
+                <span className="font-bold text-emerald-700 text-xs">{verifyVendorModal.vendor.category}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+                <span className="text-slate-400 block font-semibold text-[10px] uppercase">Contact Person</span>
+                <span className="font-bold text-slate-900 text-xs">{verifyVendorModal.vendor.contactPerson}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+                <span className="text-slate-400 block font-semibold text-[10px] uppercase">Work Email Address</span>
+                <span className="font-bold text-slate-900 text-xs">{verifyVendorModal.vendor.email}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+                <span className="text-slate-400 block font-semibold text-[10px] uppercase">Phone Number</span>
+                <span className="font-bold text-slate-900 text-xs">{verifyVendorModal.vendor.phone}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+                <span className="text-slate-400 block font-semibold text-[10px] uppercase">GSTIN / Tax ID</span>
+                <span className="font-mono font-bold text-slate-900 text-xs">{verifyVendorModal.vendor.gstin || 'Not Provided'}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+                <span className="text-slate-400 block font-semibold text-[10px] uppercase">PAN Number</span>
+                <span className="font-mono font-bold text-slate-900 text-xs">{verifyVendorModal.vendor.pan || 'Not Provided'}</span>
+              </div>
+
+              <div className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+                <span className="text-slate-400 block font-semibold text-[10px] uppercase">Registration Date</span>
+                <span className="font-bold text-slate-900 text-xs">{verifyVendorModal.vendor.joinedDate || 'Recently Registered'}</span>
+              </div>
+
+              <div className="col-span-2 p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+                <span className="text-slate-400 block font-semibold text-[10px] uppercase">Registered Address</span>
+                <span className="font-medium text-slate-700 text-xs">{verifyVendorModal.vendor.address || 'Not Provided'}</span>
+              </div>
+
+              {verifyVendorModal.vendor.status === 'Rejected' && verifyVendorModal.vendor.rejectionReason && (
+                <div className="col-span-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-900">
+                  <span className="text-rose-500 block font-semibold text-[10px] uppercase">Rejection Reason</span>
+                  <span className="font-medium text-xs">{verifyVendorModal.vendor.rejectionReason}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => setVerifyVendorModal({ open: false, vendor: null })}
+                className="px-4 py-2 font-semibold text-slate-600 hover:text-slate-900"
+              >
+                Close
+              </button>
+
+              {verifyVendorModal.vendor.status === 'Pending' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const vid = verifyVendorModal.vendor.id;
+                      setVerifyVendorModal({ open: false, vendor: null });
+                      setRejectDialog({ open: true, vendorId: vid });
+                    }}
+                    className="px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-xl flex items-center gap-1.5 transition-colors"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    <span>Reject Request</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const vid = verifyVendorModal.vendor.id;
+                      setVerifyVendorModal({ open: false, vendor: null });
+                      handleApprove(vid);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-md shadow-emerald-200"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Approve & Grant Access</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Rejection Dialog */}

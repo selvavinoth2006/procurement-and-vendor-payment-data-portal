@@ -29,9 +29,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const session = await authApi.login(email, password);
-      setUser(session.user);
-      setToken(session.token);
-      return session.user;
+      const userObj = session?.user || session;
+      const tokenVal = session?.token || `mock-token-${Date.now()}`;
+      setUser(userObj);
+      setToken(tokenVal);
+      return userObj;
     } finally {
       setLoading(false);
     }

@@ -140,6 +140,13 @@ export const LandingPage = () => {
               Sign In
             </button>
             <button
+              id="nav-vendor-reg-btn"
+              onClick={() => navigate('/register')}
+              className="px-5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold text-sm transition-all duration-200 flex items-center gap-1.5"
+            >
+              Vendor Signup
+            </button>
+            <button
               id="nav-get-started-btn"
               onClick={() => navigate('/login')}
               className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-sm shadow-md shadow-emerald-200 transition-all duration-200 flex items-center gap-1.5"
@@ -198,6 +205,13 @@ export const LandingPage = () => {
             >
               Access the Portal
               <ArrowRight className="w-5 h-5" />
+            </button>
+            <button
+              id="hero-vendor-reg-btn"
+              onClick={() => navigate('/register')}
+              className="w-full sm:w-auto px-8 py-4 bg-white border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold rounded-2xl shadow-sm transition-all duration-200 flex items-center justify-center gap-2 text-base"
+            >
+              Register as Vendor
             </button>
           </div>
 
